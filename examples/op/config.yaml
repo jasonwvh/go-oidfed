@@ -15,3 +15,31 @@ trust_marks:
     trust_mark_issuer: https://tm.example.org/
     min_lifetime: 60
     refresh_grace_period: 3600
+oidc_provider_config:
+  issuer: "https://example.com"
+  authorization_endpoint: "https://example.com/authorize"
+  token_endpoint: "https://example.com/token"
+  userinfo_endpoint: "https://example.com/userinfo"
+  jwks_uri: "https://example.com/.well-known/jwks.json"
+  registration_endpoint: "https://example.com/register"
+  scopes_supported:
+    - "openid"
+    - "profile"
+    - "email"
+  response_types_supported:
+    - "code"
+    - "token"
+    - "id_token"
+  response_modes_supported:
+    - "query"
+    - "fragment"
+  grant_types_supported:
+    - "authorization_code"
+    - "implicit"
+    - "refresh_token"
+  acr_values_supported:
+    - "urn:mace:incommon:iap:silver"
+    - "urn:mace:incommon:iap:bronze"
+  subject_types_supported:
+    - "public"
+    - "pairwise"

@@ -8,17 +8,26 @@ import (
 	"github.com/zachmann/go-oidfed/pkg"
 )
 
+type OIDCProviderConfig struct {
+	Issuer                string `yaml:"issuer"`
+	AuthorizationEndpoint string `yaml:"authorization_endpoint"`
+	TokenEndpoint         string `yaml:"token_endpoint"`
+	UserinfoEndpoint      string `yaml:"userinfo_endpoint"`
+	JWKSURI               string `yaml:"jwks_uri"`
+}
+
 type config struct {
-	EntityID           string                                    `yaml:"entity_id"`
-	TrustAnchors       pkg.TrustAnchors                          `yaml:"trust_anchors"`
-	AuthorityHints     []string                                  `yaml:"authority_hints"`
-	OrganisationName   string                                    `yaml:"organisation_name"`
-	ServerAddr         string                                    `yaml:"server_addr"`
-	KeyStorage         string                                    `yaml:"key_storage"`
-	OnlyAutomaticOPs   bool                                      `yaml:"filter_to_automatic_ops"`
-	EnableDebugLog     bool                                      `yaml:"enable_debug_log"`
-	TrustMarks         []*pkg.EntityConfigurationTrustMarkConfig `yaml:"trust_marks"`
-	UseResolveEndpoint bool                                      `yaml:"use_resolve_endpoint"`
+	EntityID           string                                    `yaml:"entity_id" json:"entity_id,omitempty"`
+	TrustAnchors       pkg.TrustAnchors                          `yaml:"trust_anchors" json:"trust_anchors,omitempty"`
+	AuthorityHints     []string                                  `yaml:"authority_hints" json:"authority_hints,omitempty"`
+	OrganisationName   string                                    `yaml:"organisation_name" json:"organisation_name,omitempty"`
+	ServerAddr         string                                    `yaml:"server_addr" json:"server_addr,omitempty"`
+	KeyStorage         string                                    `yaml:"key_storage" json:"key_storage,omitempty"`
+	OnlyAutomaticOPs   bool                                      `yaml:"filter_to_automatic_ops" json:"only_automatic_o_ps,omitempty"`
+	EnableDebugLog     bool                                      `yaml:"enable_debug_log" json:"enable_debug_log,omitempty"`
+	TrustMarks         []*pkg.EntityConfigurationTrustMarkConfig `yaml:"trust_marks" json:"trust_marks,omitempty"`
+	UseResolveEndpoint bool                                      `yaml:"use_resolve_endpoint" json:"use_resolve_endpoint,omitempty"`
+	OidcProviderConfig OIDCProviderConfig                        `yaml:"oidc_provider_config" json:"oidc_provider_config"`
 }
 
 var conf *config

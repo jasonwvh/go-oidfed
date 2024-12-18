@@ -4,32 +4,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/zachmann/go-oidfed/examples/op/pkce"
 	"github.com/zachmann/go-oidfed/pkg"
 	"log"
 	"net/http"
 )
 
-type stateData struct {
-	codeChallange *pkce.PKCE
-	issuer        string
+func initServer() {
+	http.HandleFunc("/.well-known/openid-federation", handleEntityConfiguration)
+	http.HandleFunc("/.well-known/openid-configuration", handleOIDCConfiguration)
+	http.HandleFunc("/authorize", handleAuthorize)
+	http.HandleFunc("/token", handleToken)
+	http.HandleFunc("/userinfo", handleUserInfo)
+	http.HandleFunc("/jwks", handleJWKS)
+	http.HandleFunc("/logout", handleLogout)
+
+	fmt.Printf("Serving on %s\n", conf.ServerAddr)
+	if err := http.ListenAndServe(conf.ServerAddr, nil); err != nil {
+		log.Fatal(err)
+	}
 }
 
-var stateDB map[string]stateData
-
-var authBuilder *pkg.RequestObjectProducer
 var _fedLeaf *pkg.FederationLeaf
 
 func fedLeaf() *pkg.FederationLeaf {
 	if _fedLeaf == nil {
 		metadata := &pkg.Metadata{
 			OpenIDProvider: &pkg.OpenIDProviderMetadata{
-				// Scope:                   "openid",
-				Issuer:                "",
-				AuthorizationEndpoint: "",
-				TokenEndpoint:         "",
-				UserinfoEndpoint:      "",
-				RegistrationEndpoint:  "",
+				Issuer:                conf.OidcProviderConfig.Issuer,
+				AuthorizationEndpoint: conf.OidcProviderConfig.AuthorizationEndpoint,
+				TokenEndpoint:         conf.OidcProviderConfig.TokenEndpoint,
+				UserinfoEndpoint:      conf.OidcProviderConfig.UserinfoEndpoint,
 			},
 			FederationEntity: &pkg.FederationEntityMetadata{
 				OrganizationName: conf.OrganisationName,
@@ -51,8 +55,6 @@ func fedLeaf() *pkg.FederationLeaf {
 	return _fedLeaf
 }
 
-var redirectURI string
-
 func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 	var err error
 
@@ -65,13 +67,13 @@ func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleOIDCConfiguration(w http.ResponseWriter, r *http.Request) {
+	entity := fedLeaf().Metadata.OpenIDProvider
 	oidcConfig := pkg.OpenIDProviderMetadata{
-		Issuer:                                  "",
-		AuthorizationEndpoint:                   "",
-		TokenEndpoint:                           "",
-		UserinfoEndpoint:                        "",
-		RegistrationEndpoint:                    "",
-		JWKSURI:                                 "",
+		Issuer:                                  entity.Issuer,
+		AuthorizationEndpoint:                   entity.AuthorizationEndpoint,
+		TokenEndpoint:                           entity.TokenEndpoint,
+		UserinfoEndpoint:                        entity.UserinfoEndpoint,
+		JWKSURI:                                 entity.JWKSURI,
 		ResponseTypesSupported:                  []string{"code"},
 		SubjectTypesSupported:                   []string{"public"},
 		IDTokenSignedResponseAlgValuesSupported: []string{"RS256"},
@@ -82,31 +84,43 @@ func handleOIDCConfiguration(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(res)
 }
 
-func initServer() {
-	redirectURI = fmt.Sprintf("%s/%s", conf.EntityID, "redirect")
-	stateDB = make(map[string]stateData)
-
-	http.HandleFunc("/.well-known/openid-federation", handleEntityConfiguration)
-	http.HandleFunc("/.well-known/openid-configuration", handleOIDCConfiguration)
-	http.HandleFunc("/authorize", handleAuthorize)
-	http.HandleFunc("/token", handleToken)
-	http.HandleFunc("/userinfo", handleUserInfo)
-	http.HandleFunc("/jwks", handleJWKS)
-	http.HandleFunc("/logout", handleLogout)
-
-	fmt.Printf("Serving on %s\n", conf.ServerAddr)
-	if err := http.ListenAndServe(conf.ServerAddr, nil); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	// Handle the authorization request
 	// This is a simplified example, you need to implement the full logic
 	code := randASCIIString(32)
 	state := r.URL.Query().Get("state")
 	redirectURI := r.URL.Query().Get("redirect_uri")
+
 	http.Redirect(w, r, fmt.Sprintf("%s?code=%s&state=%s", redirectURI, code, state), http.StatusFound)
+
+	/*
+		{
+		  "typ": "oauth-authz-req+jwt",
+		  "alg": "RS256",
+		  "kid": "that-kid-which-points-to-a-jwk-contained-in-the-trust-chain",
+		}
+		.
+		{
+		  "aud": "https://op.example.org",
+		  "client_id": "https://rp.example.com",
+		  "exp": 1589699162,
+		  "iat": 1589699102,
+		  "iss": "https://rp.example.com",
+		  "jti": "4d3ec0f81f134ee9a97e0449be6d32be",
+		  "nonce": "4LX0mFMxdBjkGmtx7a8WIOnB",
+		  "redirect_uri": "https://rp.example.com/authz_cb",
+		  "response_type": "code",
+		  "scope": "openid profile email address phone",
+		  "state": "YmX8PM9I7WbNoMnnieKKBiptVW0sP2OZ",
+		  "trust_chain" : [
+		    "eyJhbGciOiJSUzI1NiIsImtpZCI6Ims1NEhRdERpYnlHY3M5WldWTWZ2aUhm ...",
+		    "eyJhbGciOiJSUzI1NiIsImtpZCI6IkJYdmZybG5oQU11SFIwN2FqVW1BY0JS ...",
+		    "eyJhbGciOiJSUzI1NiIsImtpZCI6IkJYdmZybG5oQU11SFIwN2FqVW1BY0JS ..."
+		  ]
+		}
+	*/
+	request := r.URL.Query().Get("request")
+	fmt.Printf("Request: %s\n", request)
 }
 
 func handleToken(w http.ResponseWriter, r *http.Request) {
