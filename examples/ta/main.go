@@ -11,7 +11,6 @@ import (
 	"github.com/zachmann/go-oidfed/examples/ta/config"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/fedentities"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
 func main() {
@@ -25,21 +24,10 @@ func main() {
 	initKey()
 	log.Println("Loaded signing key")
 
-	var subordinateStorage storage.SubordinateStorageBackend
-	var trustMarkedEntitiesStorage storage.TrustMarkedEntitiesStorageBackend
-	if c.ReadableStorage {
-		warehouse := storage.NewFileStorage(c.DataLocation)
-		subordinateStorage = warehouse.SubordinateStorage()
-		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
-	} else {
-		warehouse, err := storage.NewBadgerStorage(c.DataLocation)
-		if err != nil {
-			log.Fatal(err)
-		}
-		subordinateStorage = warehouse.SubordinateStorage()
-		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
+	subordinateStorage, trustMarkedEntitiesStorage, err := config.LoadStorageBackends(c)
+	if err != nil {
+		log.Fatal(err)
 	}
-	log.Println("Loaded storage backend")
 
 	entity, err := fedentities.NewFedEntity(
 		c.EntityID, c.AuthorityHints,
@@ -102,6 +90,9 @@ func main() {
 	if endpoint := c.Endpoints.TrustMarkEndpoint; endpoint.IsSet() {
 		entity.AddTrustMarkEndpoint(endpoint, trustMarkedEntitiesStorage, trustMarkCheckerMap)
 	}
+	if endpoint := c.Endpoints.TrustMarkRequestEndpoint; endpoint.IsSet() {
+		entity.AddTrustMarkRequestEndpoint(endpoint, trustMarkedEntitiesStorage)
+	}
 	if endpoint := c.Endpoints.EnrollmentEndpoint; endpoint.IsSet() {
 		var checker fedentities.EntityChecker
 		if checkerConfig := endpoint.CheckerConfig; checkerConfig.Type != "" {
@@ -112,22 +103,10 @@ func main() {
 		}
 		entity.AddEnrollEndpoint(endpoint.EndpointConf, subordinateStorage, checker)
 	}
+	if endpoint := c.Endpoints.EnrollmentRequestEndpoint; endpoint.IsSet() {
+		entity.AddEnrollRequestEndpoint(endpoint, subordinateStorage)
+	}
 	log.Println("Added Endpoints")
-
-	// subordinateStorage.Write(
-	// 	"https://op.example.org", storage.SubordinateInfo{
-	// 		JWKS:       genJWKS(),
-	// 		EntityType: constants.EntityTypeOpenIDProvider,
-	// 		EntityID:   "https://op.example.org",
-	// 	},
-	// )
-	// subordinateStorage.Write(
-	// 	"https://rp.example.org", storage.SubordinateInfo{
-	// 		JWKS:       genJWKS(),
-	// 		EntityType: constants.EntityTypeOpenIDRelyingParty,
-	// 		EntityID:   "https://rp.example.org",
-	// 	},
-	// )
 
 	log.Printf("Start serving on port %d\n", c.ServerPort)
 	if err = http.ListenAndServe(fmt.Sprintf(":%d", c.ServerPort), entity.HttpHandlerFunc()); err != nil {

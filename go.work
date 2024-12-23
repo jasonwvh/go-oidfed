@@ -4,5 +4,6 @@ use (
 	.
 	examples/rp
 	examples/ta
+	examples/ta/cli
 	examples/op
 )

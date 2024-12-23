@@ -15,20 +15,23 @@ import (
 // EntityConfigurationTrustMarkConfig is a type for specifying the configuration of a TrustMark that should be
 // included in an EntityConfiguration
 type EntityConfigurationTrustMarkConfig struct {
-	TrustMarkID        string                     `yaml:"trust_mark_id"`
-	TrustMarkIssuer    string                     `yaml:"trust_mark_issuer"`
-	JWT                string                     `yaml:"trust_mark_jwt"`
-	Refresh            bool                       `yaml:"refresh"`
-	MinLifetime        unixtime.DurationInSeconds `yaml:"min_lifetime"`
-	RefreshGracePeriod unixtime.DurationInSeconds `yaml:"refresh_grace_period"`
-	expiration         unixtime.Unixtime
-	sub                string
+	TrustMarkID          string                     `yaml:"trust_mark_id"`
+	TrustMarkIssuer      string                     `yaml:"trust_mark_issuer"`
+	JWT                  string                     `yaml:"trust_mark_jwt"`
+	Refresh              bool                       `yaml:"refresh"`
+	MinLifetime          unixtime.DurationInSeconds `yaml:"min_lifetime"`
+	RefreshGracePeriod   unixtime.DurationInSeconds `yaml:"refresh_grace_period"`
+	expiration           unixtime.Unixtime
+	lastTried            unixtime.Unixtime
+	sub                  string
+	ownTrustMarkEndpoint string
 }
 
 // Verify verifies that the EntityConfigurationTrustMarkConfig is correct and also extracts trust mark id and issuer
 // if a trust mark jwt is given as well as sets default values
-func (c *EntityConfigurationTrustMarkConfig) Verify(sub string) error {
+func (c *EntityConfigurationTrustMarkConfig) Verify(sub, ownTrustMarkEndpoint string) error {
 	c.sub = sub
+	c.ownTrustMarkEndpoint = ownTrustMarkEndpoint
 	if c.MinLifetime.Duration == 0 {
 		c.MinLifetime = unixtime.NewDurationInSeconds(10)
 	}
@@ -81,15 +84,25 @@ func (c *EntityConfigurationTrustMarkConfig) TrustMarkJWT() (string, error) {
 
 // refresh refreshes the trust mark at the trust mark issuer's trust mark endpoint
 func (c *EntityConfigurationTrustMarkConfig) refresh() error {
-	tmi, err := GetEntityConfiguration(c.TrustMarkIssuer)
-	if err != nil {
-		return err
+	if time.Since(c.lastTried.Time) < time.Minute {
+		// Only try once a minute to obtain a new trust mark
+		return errors.New("only trying to refresh trust mark once a minute")
 	}
-	if tmi.Metadata == nil || tmi.Metadata.FederationEntity == nil || tmi.Metadata.
-		FederationEntity.FederationTrustMarkEndpoint == "" {
-		return errors.New("could not obtain trust mark endpoint of trust mark issuer")
+	c.lastTried = unixtime.Now()
+	var endpoint string
+	if c.TrustMarkIssuer == c.sub {
+		endpoint = c.ownTrustMarkEndpoint
+	} else {
+		tmi, err := GetEntityConfiguration(c.TrustMarkIssuer)
+		if err != nil {
+			return err
+		}
+		if tmi.Metadata == nil || tmi.Metadata.FederationEntity == nil || tmi.Metadata.
+			FederationEntity.FederationTrustMarkEndpoint == "" {
+			return errors.New("could not obtain trust mark endpoint of trust mark issuer")
+		}
+		endpoint = tmi.Metadata.FederationEntity.FederationTrustMarkEndpoint
 	}
-	endpoint := tmi.Metadata.FederationEntity.FederationTrustMarkEndpoint
 	params := url.Values{}
 	params.Add("trust_mark_id", c.TrustMarkID)
 	params.Add("sub", c.sub)
