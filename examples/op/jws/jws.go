@@ -1,4 +1,4 @@
-package main
+package jws
 
 import (
 	"crypto"
@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/zachmann/go-oidfed/examples/op/config"
 	"log"
 	"os"
 	"path"
@@ -26,10 +27,10 @@ func mustNewKey() *ecdsa.PrivateKey {
 }
 
 func mustLoadKey(name string) crypto.Signer {
-	data, err := os.ReadFile(path.Join(conf.KeyStorage, name))
+	data, err := os.ReadFile(path.Join(config.Conf.KeyStorage, name))
 	if err != nil {
 		sk := mustNewKey()
-		if err = os.WriteFile(path.Join(conf.KeyStorage, name), exportECPrivateKeyAsPem(sk), 0600); err != nil {
+		if err = os.WriteFile(path.Join(config.Conf.KeyStorage, name), exportECPrivateKeyAsPem(sk), 0600); err != nil {
 			log.Fatal(err)
 		}
 		return sk
@@ -44,7 +45,7 @@ func mustLoadKey(name string) crypto.Signer {
 var keys map[string]crypto.Signer
 var jwks map[string]jwk.JWKS
 
-func initKeys(names ...string) {
+func InitKeys(names ...string) {
 	keys = make(map[string]crypto.Signer)
 	jwks = make(map[string]jwk.JWKS)
 	for _, name := range names {
@@ -54,10 +55,10 @@ func initKeys(names ...string) {
 	}
 }
 
-func getKey(name string) crypto.Signer {
+func GetKey(name string) crypto.Signer {
 	return keys[name]
 }
-func getJWKS(name string) *jwk.JWKS {
+func GetJWKS(name string) *jwk.JWKS {
 	set := jwks[name]
 	return &set
 }

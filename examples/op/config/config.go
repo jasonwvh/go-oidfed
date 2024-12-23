@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/stretchr/testify/assert/yaml"
@@ -30,32 +30,32 @@ type config struct {
 	OidcProviderConfig OIDCProviderConfig                        `yaml:"oidc_provider_config" json:"oidc_provider_config"`
 }
 
-var conf *config
+var Conf *config
 
-func mustLoadConfig() {
+func MustLoadConfig() {
 	data, err := os.ReadFile("config.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}
-	conf = &config{}
-	if err = yaml.Unmarshal(data, conf); err != nil {
+	Conf = &config{}
+	if err = yaml.Unmarshal(data, Conf); err != nil {
 		log.Fatal(err)
 	}
-	if conf.KeyStorage == "" {
+	if Conf.KeyStorage == "" {
 		log.Fatal("key_storage must be given")
 	}
-	d, err := os.Stat(conf.KeyStorage)
+	d, err := os.Stat(Conf.KeyStorage)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !d.IsDir() {
-		log.Fatalf("key_storage '%s' must be a directory", conf.KeyStorage)
+		log.Fatalf("key_storage '%s' must be a directory", Conf.KeyStorage)
 	}
-	if conf.EnableDebugLog {
+	if Conf.EnableDebugLog {
 		pkg.EnableDebugLogging()
 	}
-	for _, c := range conf.TrustMarks {
-		if err = c.Verify(conf.EntityID); err != nil {
+	for _, c := range Conf.TrustMarks {
+		if err = c.Verify(Conf.EntityID, ""); err != nil {
 			log.Fatal(err)
 		}
 	}
