@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"github.com/zachmann/go-oidfed/examples/op/session"
 	"net/http"
 	"net/url"
@@ -16,10 +18,19 @@ func HandleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorizationCode := "auth_code_example"
+	authorizationCode, _ := GenerateRandomCode(32)
 	expiresAt := time.Now().Add(5 * time.Minute)
 	username := r.URL.Query().Get("username")
 	SaveAuthCode(authorizationCode, username, expiresAt)
 
-	http.Redirect(w, r, redirectURI+"?code="+authorizationCode, http.StatusFound)
+	//http.Redirect(w, r, redirectURI+"?code="+authorizationCode, http.StatusFound)
+	http.Redirect(w, r, "http://localhost:4444/token"+"?code="+authorizationCode, http.StatusFound)
+}
+
+func GenerateRandomCode(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes), nil
 }

@@ -25,7 +25,7 @@ type config struct {
 var conf *config
 
 func mustLoadConfig() {
-	data, err := os.ReadFile("config.yaml")
+	data, err := os.ReadFile("/Users/jason.wong/GoProjects/go-oidfed/examples/rp/config.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}

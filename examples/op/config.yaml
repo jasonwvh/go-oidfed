@@ -11,17 +11,17 @@ filter_to_automatic_ops: false
 enable_debug_log: false
 use_resolve_endpoint: true
 trust_marks:
-  - trust_mark_id: https://tm.example.org/tm
-    trust_mark_issuer: https://tm.example.org/
+  - trust_mark_id: http://localhost:8765/tm
+    trust_mark_issuer: http://localhost:8765/
     min_lifetime: 60
     refresh_grace_period: 3600
 oidc_provider_config:
-  issuer: "https://example.com"
-  authorization_endpoint: "https://example.com/authorize"
-  token_endpoint: "https://example.com/token"
-  userinfo_endpoint: "https://example.com/userinfo"
-  jwks_uri: "https://example.com/.well-known/jwks.json"
-  registration_endpoint: "https://example.com/register"
+  issuer: "http://localhost:4444"
+  authorization_endpoint: "http://localhost:4444/authorize"
+  token_endpoint: "http://localhost:4444/token"
+  userinfo_endpoint: "http://localhost:4444/userinfo"
+  jwks_uri: "http://localhost:4444/.well-known/jwks.json"
+  registration_endpoint: "http://localhost:4444/register"
   scopes_supported:
     - "openid"
     - "profile"
@@ -35,8 +35,6 @@ oidc_provider_config:
     - "fragment"
   grant_types_supported:
     - "authorization_code"
-    - "implicit"
-    - "refresh_token"
   acr_values_supported:
     - "urn:mace:incommon:iap:silver"
     - "urn:mace:incommon:iap:bronze"

@@ -3,6 +3,8 @@ package handlers
 import (
 	"github.com/golang-jwt/jwt"
 	"github.com/zachmann/go-oidfed/examples/op/session"
+	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"html/template"
 	"net/http"
 	"time"
@@ -16,7 +18,9 @@ type LoginRequest struct {
 }
 
 type Claims struct {
-	Username string `json:"username"`
+	Username string       `json:"username"`
+	JWKS     jwk.JWKS     `json:"jwks"`
+	Metadata pkg.Metadata `json:"metadata"`
 	jwt.StandardClaims
 }
 

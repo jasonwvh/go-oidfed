@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	configFile := "config.yaml"
+	configFile := "/Users/jason.wong/GoProjects/go-oidfed/examples/ta/config.yaml"
 	if len(os.Args) > 1 {
 		configFile = os.Args[1]
 	}

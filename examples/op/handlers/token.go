@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/golang-jwt/jwt"
+	"github.com/zachmann/go-oidfed/examples/op/jws"
+	"github.com/zachmann/go-oidfed/pkg"
 	"net/http"
 	"sync"
 	"time"
@@ -49,26 +51,26 @@ func DeleteAuthCode(code string) {
 }
 
 func HandleToken(w http.ResponseWriter, r *http.Request) {
-	var req TokenRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
+	code := r.URL.Query().Get("code")
 
-	authCode, exists := GetAuthCode(req.Code)
+	authCode, exists := GetAuthCode(code)
 	if !exists || time.Now().After(authCode.ExpiresAt) {
 		http.Error(w, "Invalid or expired code", http.StatusUnauthorized)
 		return
 	}
-	DeleteAuthCode(req.Code)
+	DeleteAuthCode(code)
 
 	expirationTime := time.Now().Add(15 * time.Minute)
+	jwks := jws.GetJWKS("oidc")
+	openidProvider := fedLeaf().EntityConfigurationPayload().Metadata.OpenIDProvider
+	metadata := pkg.Metadata{OpenIDProvider: openidProvider}
 	accessTokenClaims := &Claims{
 		Username: authCode.Username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
+		JWKS:     *jwks,
+		Metadata: metadata,
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims)
 	accessTokenString, err := accessToken.SignedString(jwtKey)
