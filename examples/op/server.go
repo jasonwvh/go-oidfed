@@ -18,6 +18,7 @@ func initServer() {
 	http.HandleFunc("/userinfo", handlers.HandleUserInfo)
 	http.HandleFunc("/jwks", handlers.HandleJWKS)
 	http.HandleFunc("/logout", handlers.HandleLogout)
+	http.HandleFunc("/register", handlers.RegisterUser) // new handler for user registration
 
 	fmt.Printf("Serving on %s\n", config.Conf.ServerAddr)
 	if err := http.ListenAndServe(config.Conf.ServerAddr, nil); err != nil {

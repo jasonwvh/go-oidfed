@@ -16,6 +16,7 @@
     <label for="password">Password:</label>
     <input type="password" id="password" name="password" required>
     <br>
+    <input type="hidden" name="redirect_uri" value="{{ .redirect_uri }}">
     <button type="submit">Login</button>
 </form>
 </body>

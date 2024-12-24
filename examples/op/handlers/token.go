@@ -56,17 +56,13 @@ func HandleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve the authorization code from the database
 	authCode, exists := GetAuthCode(req.Code)
 	if !exists || time.Now().After(authCode.ExpiresAt) {
 		http.Error(w, "Invalid or expired code", http.StatusUnauthorized)
 		return
 	}
-
-	// Delete the authorization code from the database
 	DeleteAuthCode(req.Code)
 
-	// Create access token
 	expirationTime := time.Now().Add(15 * time.Minute)
 	accessTokenClaims := &Claims{
 		Username: authCode.Username,
@@ -81,6 +77,5 @@ func HandleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return access token
 	json.NewEncoder(w).Encode(map[string]string{"access_token": accessTokenString})
 }
